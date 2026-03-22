@@ -1,9 +1,6 @@
-const express = require("express");
-const fs = require("fs");
-const {
-  default: makeWASocket,
-  useMultiFileAuthState
-} = require("@whiskeysockets/baileys");
+import express from "express";
+import fs from "fs";
+import makeWASocket, { useMultiFileAuthState } from "@whiskeysockets/baileys";
 
 const app = express();
 app.use(express.json());
@@ -19,88 +16,75 @@ async function startBot() {
   sock = makeWASocket({
     auth: state,
     printQRInTerminal: false,
-    browser: ["NOOR-X", "Chrome", "1.0.0"], // IMPORTANT
+    browser: ["NOOR-X", "Chrome", "1.0.0"],
   });
 
-  // Save session
   sock.ev.on("creds.update", saveCreds);
 
-  // Connection updates
   sock.ev.on("connection.update", (update) => {
     const { connection } = update;
 
     if (connection === "open") {
-      console.log("✅ Bot Connected to WhatsApp");
+      console.log("✅ Connected to WhatsApp");
       isConnected = true;
     }
 
     if (connection === "close") {
-      console.log("❌ Connection closed. Reconnecting...");
+      console.log("❌ Reconnecting...");
       isConnected = false;
-      setTimeout(() => startBot(), 3000);
+      setTimeout(startBot, 3000);
     }
   });
 }
 
 startBot();
 
-
-// 🔗 PAIR ROUTE
+// 🔗 PAIR
 app.post("/pair", async (req, res) => {
   const { number } = req.body;
 
   if (!number) {
-    return res.json({ error: "❌ Enter number with country code" });
+    return res.json({ error: "Enter number" });
   }
 
-  if (!sock || !isConnected) {
-    return res.json({ error: "❌ Bot not ready. Wait a few seconds." });
+  if (!isConnected) {
+    return res.json({ error: "Bot not ready" });
   }
 
   try {
-    // small delay (IMPORTANT FIX)
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
+    await new Promise(r => setTimeout(r, 3000));
     const code = await sock.requestPairingCode(number);
-
-    console.log("📲 Pairing code generated:", code);
-
     res.json({ code });
-
   } catch (err) {
-    console.log("PAIR ERROR:", err);
-    res.json({ error: "❌ Pairing failed. Try again" });
+    res.json({ error: "Pairing failed" });
   }
 });
 
-
-// 🔐 SESSION ROUTE (REAL ONLY)
+// 🔐 SESSION
 app.get("/session", (req, res) => {
   try {
     if (!fs.existsSync("./auth/creds.json")) {
-      return res.json({ error: "❌ Not paired yet" });
+      return res.json({ error: "Not paired" });
     }
 
     const creds = fs.readFileSync("./auth/creds.json");
     const data = JSON.parse(creds);
 
-    // Ensure real connection exists
     if (!data.me) {
-      return res.json({ error: "❌ Not connected to WhatsApp" });
+      return res.json({ error: "Not connected" });
     }
 
     const session = Buffer.from(creds).toString("base64");
-
     res.json({ session });
 
-  } catch (err) {
-    console.log("SESSION ERROR:", err);
-    res.json({ error: "❌ Session error" });
+  } catch {
+    res.json({ error: "Session error" });
   }
 });
 
+// 🌐 SERVER
+const PORT = process.env.PORT || 3000;
 
-// 🌐 START SERVER
-app.listen(3000, () => {
-  console.log("🌐 Open in browser: http://127.0.0.1:3000");
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
 });
