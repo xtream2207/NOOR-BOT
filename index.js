@@ -1,3 +1,9 @@
+import { webcrypto } from "crypto";
+
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
+
 import express from "express";
 import fs from "fs";
 import makeWASocket, { useMultiFileAuthState } from "@whiskeysockets/baileys";
