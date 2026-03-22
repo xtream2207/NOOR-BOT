@@ -1,8 +1,7 @@
 import { webcrypto } from "crypto";
 
-if (!globalThis.crypto) {
-  globalThis.crypto = webcrypto;
-}
+// FORCE crypto BEFORE anything else
+globalThis.crypto = webcrypto;
 
 import express from "express";
 import fs from "fs";
